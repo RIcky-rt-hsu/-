@@ -1,0 +1,185 @@
+#include <iostream>
+#include <vector>
+#include <sstream>
+#include <string>
+#include <fstream>
+#include <math.h>
+
+int det=0,x_1=0,y_1=0,n=0,cut_time=0;
+int k,j=0,i=0,only=0,l,XYCount=0,ooo=0;
+float A,B,C,D,E,F,X,Y,fout,eout;
+float Xab,Yab;
+float f[10000][2]={0},cut[10000][2]={0};
+
+
+using namespace std;
+
+const vector<string> split(const string &str, const char &delimiter) {
+    vector<string> result;
+    stringstream ss(str);
+    string tok;
+
+    while (getline(ss, tok, delimiter)) {
+        result.push_back(tok);
+    }
+    return result;
+}
+
+
+int main() {
+
+    string c;
+    string a[1000],b[1000];
+
+    ifstream fin;
+    fin.open("2x2x2_finish.txt");
+
+    ofstream ofs;
+    ofs.open("out_2x2x2_finish.txt");
+
+    bool con=false,inf=false,oft=false,ott=false,M205=false,last=false;
+
+    while(getline(fin,a[i])){  //取出b陣列，在裙襬裡面。
+        if(a[i]=="G1 F1500 E0"){
+            ofs << a[i] << endl;
+            con=true;
+        }
+        if(con=true && con!=false){
+            b[j]=a[i];
+            j++;
+        }else if(con==false){
+            ofs << a[i] << endl;
+        }
+        if(a[i]==";TYPE:WALL-OUTER"){
+            con=false;
+            break;
+        }
+
+    }
+
+    k=j;                       //裙擺有多少層
+
+
+
+     for(i=0;i<k;i++){
+        vector<string> ret = split(b[i], ' ');
+
+        for (auto& s : ret) {
+
+
+
+                if(b[i]=="G1 F1500 E0"){
+                        inf=true;
+                }
+
+                if(s=="G0"){
+                        ofs << b[i] << endl;
+                        continue;
+                }
+
+                if(s=="M205"){
+                        ofs << b[i] << endl;
+                        //M205=true;
+                        if(inf==true){
+                            inf=false;
+                        }else{
+                            inf=true;
+                        }
+
+                        break;
+                }
+
+                if(s[0]==88 && inf==true){
+                        c=s.substr(1);
+                        f[x_1][0]=stof(c);
+                        //y_1=0;
+                        //cout << f[x_1][0] << " ";
+                        only=1;
+
+                }else if(s[0]==89 && inf==true){
+                        c=s.substr(1);
+                        f[x_1][1]=stof(c);
+                        //y_1=1;
+                        //cout << f[x_1][1] << endl;
+                        x_1++;
+                        only=2;
+                }else{
+                        only=0;
+                }
+
+
+                if(s[0]==69 && inf==true){
+                        c=s.substr(1);
+                        eout=stof(c);
+                        //cout << eout << endl;
+
+                }else if(s[0]==70 && inf==true){
+                        c=s.substr(1);
+                        fout=stof(c);
+                        //cout << eout << endl;
+
+                }
+
+                if(only==2 && ( fabs(f[x_1-2][0]-f[x_1-1][0])<2 && fabs(f[x_1-2][1]-f[x_1-1][1])<2 ) ){
+                        //cout << f[x_1-2][0] << " " << f[x_1-2][1] << "\n";
+                        //cout << f[x_1-1][0] << " " << f[x_1-1][1] << "\n";
+                        oft=true;
+                        ott=true;
+                        cut[n][0]=f[x_1-1][0];
+                        cut[n][1]=f[x_1-1][1];
+                        //cout << n << ": " << cut[n][0] << " " << cut[n][1] << "\n";
+                        n++;
+                }else if ( (( fabs(f[x_1-2][0]-f[x_1-1][0])>=2 || fabs(f[x_1-2][1]-f[x_1-1][1])>=2 ) && oft==true && ott==true)){
+                    oft=false;
+                    ott=true;
+                    ooo=1;
+
+                }else if(M205==true){
+                    oft=false;
+                    ott=true;
+                    ooo=2;
+
+
+                }
+
+
+                if(oft==false && ott==true){                                        //x1=cut[n-1] x2=cut[n-2][0] x3=[n-3][0];
+                        A=2*(cut[n-2][0]-cut[n-1][0]);
+                        B=2*(cut[n-2][1]-cut[n-1][1]);
+                        C=cut[n-2][0]*cut[n-2][0]+cut[n-2][1]*cut[n-2][1]-cut[n-1][0]*cut[n-1][0]-cut[n-1][1]*cut[n-1][1];
+                        D=2*(cut[n-3][0]-cut[n-2][0]);
+                        E=2*(cut[n-3][1]-cut[n-2][1]);
+                        F=cut[n-3][0]*cut[n-3][0]+cut[n-3][1]*cut[n-3][1]-cut[n-2][0]*cut[n-2][0]-cut[n-2][1]*cut[n-2][1];
+                        //cout << A << " " << B << " " << C << " " << D << " " << E << " " << F << endl;
+                        X=(B*F-E*C)/(B*D-E*A);
+                        Y=(D*C-A*F)/(B*D-E*A);
+
+
+                        ofs << "G3 X" << cut[n-1][0] << " Y" << cut[n-1][1] << " I" << X << " J" << Y << " E" << eout << endl;
+                        ofs << b[i] << endl;
+                        //cout << X << " " << Y << "\n";
+                        oft=false;
+                        ott=false;
+                        XYCount++;
+                }
+
+        }
+
+    }
+
+    while(getline(fin,a[i])){  //取出b陣列，在裙襬裡面。
+
+        if(a[i]==";TYPE:WALL-OUTER"){
+            last=true;
+
+        }
+        if(last==true){
+            ofs << a[i] << endl;
+        }
+
+    }
+
+    fin.close();
+    ofs.close();
+
+}
